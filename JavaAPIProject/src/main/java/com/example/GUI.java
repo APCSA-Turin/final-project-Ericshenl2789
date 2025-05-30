@@ -3,19 +3,22 @@ package com.example;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.net.URL;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+
 
 public class GUI {
+    //a being the Json parser
     private final JSONObjectProcessing a;
 
     public GUI() throws Exception {
         a = new JSONObjectProcessing();
-        SwingUtilities.invokeLater(() -> {
+
+        //initial jFrame
+        SwingUtilities.invokeLater(()->{
             JFrame frame = new JFrame("Cat Information");
-            frame.setLocation(0,0);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             generate(frame);
@@ -24,33 +27,31 @@ public class GUI {
         });
     }
 
+    //generates the image of the frame
     public JLabel generateImage(JFrame frame){
         frame.getContentPane().removeAll();
 
-        int width = a.imageWidth();
-        int height = a.imageHeight();
         frame.setSize(850, 850);
 
-
+        //image scaling
         try {
-            // Replace this with your image URL
             URL url = new URL(a.imageURL());
             BufferedImage originalImage = ImageIO.read(url);
             int maxWidth = 800;
             int maxHeight = 800;
 
-            int originalWidth = originalImage.getWidth();
-            int originalHeight = originalImage.getHeight();
+            int width = originalImage.getWidth();
+            int height = originalImage.getHeight();
 
-            double widthRatio = (double) maxWidth / originalWidth;
-            double heightRatio = (double) maxHeight / originalHeight;
-            double scale = Math.min(widthRatio, heightRatio); // Keep aspect ratio
+            double wRatio = (double) maxWidth / width;
+            double hRatio = (double) maxHeight / height;
+            double scale = Math.min(wRatio, hRatio);
 
-            int newWidth = (int) (originalWidth * scale);
-            int newHeight = (int) (originalHeight * scale);
+            int newWidth = (int) (width * scale);
+            int newHeight = (int) (height * scale);
 
-            Image scaledImage =  originalImage.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
-            return new JLabel(new ImageIcon(scaledImage));
+            Image result =  originalImage.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
+            return new JLabel(new ImageIcon(result));
         } catch (Exception e) {
             e.printStackTrace();
             frame.add(new JLabel("Failed to load image"));
@@ -58,10 +59,10 @@ public class GUI {
         return new JLabel();
     }
 
-
+    //the actual frame generation
     public void generate(JFrame frame){
-
         JPanel panel = new JPanel();
+        panel.setBackground(Color.white);
         JTextArea info = new JTextArea(3,50);
         JButton button = new JButton("New Cat");
         JButton buttonList = new JButton("Discovered Cats");
@@ -78,26 +79,89 @@ public class GUI {
         panel.add(generateImage(frame));
         frame.add(panel);
 
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    a.newCat();
-                    SwingUtilities.invokeLater(()->{
-                        generate(frame);
-                    });
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
+        //when pressed call this
+        button.addActionListener(e -> {
+            try {
+                a.newCat();
+                SwingUtilities.invokeLater(() -> {
+                    generate(frame);
+                    frame.setVisible(true);
+                });
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
             }
         });
 
-        buttonList.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println(a.getList());
+        //creates a dialog with all the cats in catsDiscovered as a list of buttons
+        buttonList.addActionListener(e -> {
+            JDialog dialog = new JDialog(frame, "Cats Discovered");
+//          dialog.add(new JList<>(a.getList().toArray()));
+            dialog.setLayout(new GridLayout(0,1));
+            dialog.setResizable(false);
+
+            for(int i = 0; i <a.getList().size(); i++){
+                int finalI = i;
+                //action is the action performed when clicking on cat's name
+                //it creates another dialog with the information inside.
+                Action action = new AbstractAction() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        JDialog info = new JDialog(dialog, "Information");
+                        info.setSize(500, 250);
+                        info.setLayout(new FlowLayout());
+                        info.setBackground(Color.white);
+
+                        JTextArea text = new JTextArea();
+                        text.setEditable(false);
+                        text.setText("More information on " + a.getList().get(finalI).get(0) + " in the websites below");
+                        JPanel panel = new JPanel();
+                        panel.setPreferredSize(new Dimension(500, 120));
+                        panel.setBackground(Color.white);
+
+                        panel.add(text);
+
+                        ArrayList<String> list;
+                        try {
+                            list = a.moreInfo(a.getList().get(finalI).get(1));
+                        } catch (Exception ex) {
+                            throw new RuntimeException(ex);
+                        }
+
+                        for (String s : list) {
+                            SwingLink a = new SwingLink(s, s);
+                            panel.add(a);
+                        }
+
+                        info.add(panel);
+                        JButton generateSpecificCat = new JButton("Generate " + a.getList().get(finalI).get(0));
+                        info.add(generateSpecificCat);
+
+                        //generates a specific cat when pressed
+                        generateSpecificCat.addActionListener(e1 -> {
+                            try {
+                                a.newCatId(a.getList().get(finalI).get(1));
+                            } catch (Exception ex) {
+                                throw new RuntimeException(ex);
+                            }
+                            SwingUtilities.invokeLater(() ->{
+                                generate(frame);
+                                frame.setVisible(true);
+                            });
+                        });
+                        info.setVisible(true);
+                    }
+
+                };
+                JButton catButton = new JButton(action);
+                catButton.setText(a.getList().get(i).get(0));
+                dialog.add(catButton);
 
             }
+
+            dialog.setSize(100,20 * a.getList().size() + 40);
+            dialog.setVisible(true);
         });
     }
+
 }
