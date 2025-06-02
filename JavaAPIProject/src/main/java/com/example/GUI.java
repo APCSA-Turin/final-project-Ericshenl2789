@@ -115,11 +115,18 @@ public class GUI {
                         JTextArea text = new JTextArea();
                         text.setEditable(false);
                         text.setText("More information on " + a.getList().get(finalI).get(0) + " in the websites below");
+                        
+                        JTextArea percent = new JTextArea();
+                        percent.setEditable(false);
+                        int numOfAppe = Integer.parseInt(a.getList().get(finalI).get(2));
+                        percent.setText("Number of times seen(not including specific generation): " + numOfAppe +"\nPercent of all cats seen: " + numOfAppe +"/" +a.totalCats() + "   " + ((double)numOfAppe/a.totalCats()));
+                        
                         JPanel panel = new JPanel();
                         panel.setPreferredSize(new Dimension(500, 120));
                         panel.setBackground(Color.white);
 
                         panel.add(text);
+
 
                         ArrayList<String> list;
                         try {
@@ -134,6 +141,7 @@ public class GUI {
                         }
 
                         info.add(panel);
+                        info.add(percent);
                         JButton generateSpecificCat = new JButton("Generate " + a.getList().get(finalI).get(0));
                         info.add(generateSpecificCat);
 
